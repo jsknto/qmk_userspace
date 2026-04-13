@@ -9,6 +9,10 @@ tap_dance_action_t *tap_dance_get(uint16_t tap_dance_idx);
 tap_dance_state_t *tap_dance_get_state(uint8_t tap_dance_idx);
 #endif
 
+#ifdef RGBLIGHT_ENABLE
+bool mouse_jiggler_is_enabled(void);
+#endif
+
 /* CAPS WORD Sounds by JCanto */
 float cwords_on[][2] = SONG(PLANCK_SOUND);
 float cwords_off[][2] = SONG(VIOLIN_SOUND);
@@ -171,6 +175,15 @@ void matrix_scan_user(void) {
         muse_counter = (muse_counter + 1) % muse_tempo;
     }
 #endif
+#ifdef RGBLIGHT_ENABLE
+    static bool last_mouse_jiggler_enabled = false;
+    bool jiggler_enabled = mouse_jiggler_is_enabled();
+
+    if (jiggler_enabled != last_mouse_jiggler_enabled) {
+        rgblight_set_layer_state(5, layer_state_cmp(layer_state, _BASE) && jiggler_enabled);
+        last_mouse_jiggler_enabled = jiggler_enabled;
+    }
+#endif
 }
 
 bool music_mask_user(uint16_t keycode) {
@@ -207,17 +220,23 @@ const rgblight_segment_t PROGMEM my_layer5_layer[] = RGBLIGHT_LAYER_SEGMENTS(
     {0, 9, HSV_PURPLE}       // Light 9 LEDs, starting with LED 1
 );
 
+const rgblight_segment_t PROGMEM my_jiggler_layer[] = RGBLIGHT_LAYER_SEGMENTS(
+    {0, 9, HSV_YELLOW}
+);
+
 const rgblight_segment_t* const PROGMEM my_rgb_layers[] = RGBLIGHT_LAYERS_LIST(
     my_lower_layer, //  index 0 of the array
     my_raise_layer, //  index 1
     my_adjust_layer, // index 2
     my_layer4_layer,  // index 3
-    my_layer5_layer  // index 4
+    my_layer5_layer,  // index 4
+    my_jiggler_layer  // index 5
 );
 
 void keyboard_post_init_user(void) {
     // Enable the LED layers
     rgblight_layers = my_rgb_layers;
+    rgblight_set_layer_state(5, layer_state_cmp(layer_state, _BASE) && mouse_jiggler_is_enabled());
 }
 /* END Lighting Layers by JCanto */
 
@@ -258,6 +277,7 @@ layer_state_t layer_state_set_user(layer_state_t state) {
     rgblight_set_layer_state(2, layer_state_cmp(new_state, _ADJUST));
     rgblight_set_layer_state(3, layer_state_cmp(new_state, _LAYER4));
     rgblight_set_layer_state(4, layer_state_cmp(new_state, _LAYER5));
+    rgblight_set_layer_state(5, layer_state_cmp(new_state, _BASE) && mouse_jiggler_is_enabled());
 
     return new_state;
 }
