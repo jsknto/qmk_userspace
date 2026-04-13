@@ -16,6 +16,8 @@ bool mouse_jiggler_is_enabled(void);
 /* CAPS WORD Sounds by JCanto */
 float cwords_on[][2] = SONG(PLANCK_SOUND);
 float cwords_off[][2] = SONG(VIOLIN_SOUND);
+float mouse_jiggler_on[][2] = SONG(QWERTY_SOUND);
+float mouse_jiggler_off[][2] = SONG(PLOVER_GOODBYE_SOUND);
 
 typedef struct {
     uint16_t tap;
@@ -176,13 +178,26 @@ void matrix_scan_user(void) {
     }
 #endif
 #ifdef RGBLIGHT_ENABLE
+    static bool last_jiggler_indicator_active = false;
     static bool last_mouse_jiggler_enabled = false;
-    bool jiggler_enabled = mouse_jiggler_is_enabled();
+    bool mouse_jiggler_enabled = mouse_jiggler_is_enabled();
+    bool jiggler_indicator_active = layer_state_cmp(layer_state, _BASE) && mouse_jiggler_enabled;
 
-    if (jiggler_enabled != last_mouse_jiggler_enabled) {
-        rgblight_set_layer_state(5, layer_state_cmp(layer_state, _BASE) && jiggler_enabled);
-        last_mouse_jiggler_enabled = jiggler_enabled;
+    if (jiggler_indicator_active != last_jiggler_indicator_active) {
+        rgblight_set_layer_state(5, jiggler_indicator_active);
+        last_jiggler_indicator_active = jiggler_indicator_active;
     }
+
+#ifdef AUDIO_ENABLE
+    if (mouse_jiggler_enabled != last_mouse_jiggler_enabled) {
+        if (mouse_jiggler_enabled) {
+            PLAY_SONG(mouse_jiggler_on);
+        } else {
+            PLAY_SONG(mouse_jiggler_off);
+        }
+        last_mouse_jiggler_enabled = mouse_jiggler_enabled;
+    }
+#endif
 #endif
 }
 
@@ -220,8 +235,8 @@ const rgblight_segment_t PROGMEM my_layer5_layer[] = RGBLIGHT_LAYER_SEGMENTS(
     {0, 9, HSV_PURPLE}       // Light 9 LEDs, starting with LED 1
 );
 
-const rgblight_segment_t PROGMEM my_jiggler_layer[] = RGBLIGHT_LAYER_SEGMENTS(
-    {0, 9, HSV_YELLOW}
+const rgblight_segment_t PROGMEM my_jiggler_layer_0[] = RGBLIGHT_LAYER_SEGMENTS(
+    {0, 1, HSV_RED}
 );
 
 const rgblight_segment_t* const PROGMEM my_rgb_layers[] = RGBLIGHT_LAYERS_LIST(
@@ -230,7 +245,7 @@ const rgblight_segment_t* const PROGMEM my_rgb_layers[] = RGBLIGHT_LAYERS_LIST(
     my_adjust_layer, // index 2
     my_layer4_layer,  // index 3
     my_layer5_layer,  // index 4
-    my_jiggler_layer  // index 5
+    my_jiggler_layer_0 // index 5
 );
 
 void keyboard_post_init_user(void) {
