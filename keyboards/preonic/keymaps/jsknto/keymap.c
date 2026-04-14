@@ -9,9 +9,13 @@ tap_dance_action_t *tap_dance_get(uint16_t tap_dance_idx);
 tap_dance_state_t *tap_dance_get_state(uint8_t tap_dance_idx);
 #endif
 
+bool mouse_jiggler_is_enabled(void);
+
 /* CAPS WORD Sounds by JCanto */
 float cwords_on[][2] = SONG(PREONIC_SOUND);
 float cwords_off[][2] = SONG(VIOLIN_SOUND);
+float mouse_jiggler_on[][2] = SONG(QWERTY_SOUND);
+float mouse_jiggler_off[][2] = SONG(PLOVER_GOODBYE_SOUND);
 
 typedef struct {
     uint16_t tap;
@@ -38,6 +42,10 @@ enum preonic_layers {
   _ADJUST,
   _LAYER4,
   _LAYER5,
+};
+
+enum custom_keycodes {
+        JG_STAT = SAFE_RANGE,
 };
 
 #define LOWER MO(_LOWER)
@@ -74,7 +82,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 [_ADJUST] = LAYOUT_preonic_grid(
     KC_GRAVE,  KC_1,  KC_2,  KC_3,  KC_4,  KC_5,  KC_6,  KC_7,  KC_8,  KC_9,  KC_0,  KC_TRANSPARENT,
     KC_TRANSPARENT,  KC_TRANSPARENT,  KC_TRANSPARENT,  KC_TRANSPARENT,  KC_TRANSPARENT,  MS_UP,  MS_DOWN,  KC_TRANSPARENT,  KC_TRANSPARENT,  KC_TRANSPARENT,  KC_TRANSPARENT,  KC_TRANSPARENT,  KC_DELETE,
-    KC_TRANSPARENT,  QK_AUDIO_ON,  QK_AUDIO_OFF,  AU_TOGG,  KC_TRANSPARENT,  KC_TRANSPARENT,  KC_TRANSPARENT,  KC_TRANSPARENT,  KC_TRANSPARENT,  KC_TRANSPARENT,  QK_BOOT,
+    KC_TRANSPARENT,  QK_AUDIO_ON,  QK_AUDIO_OFF,  AU_TOGG,  MJ_TOGG,  JG_STAT,  KC_TRANSPARENT,  KC_TRANSPARENT,  KC_TRANSPARENT,  KC_TRANSPARENT,  QK_BOOT,
     KC_CAPS,  KC_TRANSPARENT,  QK_MUSIC_ON,  QK_MUSIC_OFF,  MU_TOGG,  KC_TRANSPARENT,  KC_TRANSPARENT,  KC_TRANSPARENT,  KC_TRANSPARENT,  KC_TRANSPARENT,  KC_AUDIO_VOL_UP,  KC_TRANSPARENT,
     KC_TRANSPARENT,  KC_TRANSPARENT,  KC_TRANSPARENT,  KC_TRANSPARENT,  KC_TRANSPARENT,  KC_TRANSPARENT,  KC_TRANSPARENT,  KC_TRANSPARENT,  KC_TRANSPARENT,  KC_TRANSPARENT,  KC_AUDIO_VOL_DOWN, KC_AUDIO_MUTE
 ),
@@ -102,6 +110,16 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     tap_dance_state_t *state;
   switch (keycode) {
+
+    case JG_STAT:
+        if (record->event.pressed) {
+#ifdef AUDIO_ENABLE
+            if (mouse_jiggler_is_enabled()) {
+                PLAY_SONG(mouse_jiggler_on);
+            }
+#endif
+        }
+        return false;
 
     case TD(DANCE_0):
     case TD(DANCE_1):
@@ -165,6 +183,8 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
 
 void matrix_scan_user(void) {
 #ifdef AUDIO_ENABLE
+    static bool last_mouse_jiggler_enabled = false;
+
     if (muse_mode) {
         if (muse_counter == 0) {
             uint8_t muse_note = muse_offset + SCALE[muse_clock_pulse()];
@@ -175,6 +195,16 @@ void matrix_scan_user(void) {
             }
         }
         muse_counter = (muse_counter + 1) % muse_tempo;
+    }
+
+    bool mouse_jiggler_enabled = mouse_jiggler_is_enabled();
+    if (mouse_jiggler_enabled != last_mouse_jiggler_enabled) {
+        if (mouse_jiggler_enabled) {
+            PLAY_SONG(mouse_jiggler_on);
+        } else {
+            PLAY_SONG(mouse_jiggler_off);
+        }
+        last_mouse_jiggler_enabled = mouse_jiggler_enabled;
     }
 #endif
 }

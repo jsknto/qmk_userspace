@@ -26,6 +26,8 @@
 
 #define MUSIC_MASK (keycode != KC_NO)
 
+#define SERIAL_NUMBER "PREONICREV3-JSKNTO-001"
+
 /*
  * MIDI options
  */
